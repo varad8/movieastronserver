@@ -39,5 +39,9 @@ app.get("/api/admin", authMiddleware, roleMiddleware(["admin"]), (req, res) => {
   res.send("This is an admin route");
 });
 
+app.get("/", (req, res) => {
+  res.send("Hello Im Server");
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
