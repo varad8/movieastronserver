@@ -3,7 +3,7 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
-const connectDB = async () => {
+const connectDB = async (retries = 5, delay = 5000) => {
   try {
     await mongoose.connect(process.env.MONGO_URI, {
       useNewUrlParser: true,
@@ -11,8 +11,15 @@ const connectDB = async () => {
     });
     console.log("MongoDB connected");
   } catch (error) {
-    console.error("Error connecting to MongoDB", error);
-    process.exit(1);
+    if (retries === 0) {
+      console.error("Error connecting to MongoDB. No retries left.", error);
+      return;
+    }
+    console.error(
+      `Error connecting to MongoDB. Retrying in ${delay / 1000} seconds...`,
+      error
+    );
+    setTimeout(() => connectDB(retries - 1, delay), delay);
   }
 };
 
