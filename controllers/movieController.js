@@ -69,7 +69,9 @@ const getAllMovies = async (req, res) => {
   }
 
   try {
-    const movies = await Movie.find(filter).populate("category");
+    const movies = await Movie.find(filter)
+      .populate("category")
+      .sort({ createdAt: -1 });
     res.send(movies);
   } catch (error) {
     res.status(400).send({ error: "Error fetching movies." });
