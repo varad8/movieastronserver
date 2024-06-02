@@ -26,7 +26,7 @@ const addMovie = async (req, res) => {
     }
 
     const movie = new Movie({
-      title: movieData.Title,
+      title: movieData.Title || "",
       year: movieData.Year,
       rated: movieData.Rated,
       released: movieData.Released,
@@ -35,7 +35,7 @@ const addMovie = async (req, res) => {
       director: movieData.Director,
       writer: movieData.Writer,
       actors: movieData.Actors,
-      plot: movieData.Plot,
+      plot: movieData.Plot || "N/A",
       language: movieData.Language,
       country: movieData.Country,
       awards: movieData.Awards,
