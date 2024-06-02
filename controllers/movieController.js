@@ -51,6 +51,7 @@ const addMovie = async (req, res) => {
     await movie.save();
     res.status(201).send({ message: "Movie added successfully.", movie });
   } catch (error) {
+    console.log(error);
     res.status(400).send({ error: "Error adding movie." });
   }
 };
