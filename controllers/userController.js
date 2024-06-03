@@ -21,27 +21,26 @@ const getAllMovieBanner = async (req, res) => {
       const category = await Category.findOne({ name: categoryName });
       if (category) {
         const movies = await Movie.find({ category: category._id })
+          .sort({ createdAt: -1 })
           .limit(5)
           .exec();
-        return movies
-          .map((movie) => ({
-            title: movie.title,
-            plot: movie.plot,
-            year: movie.year,
-            rated: movie.rated,
-            released: movie.released,
-            runtime: movie.runtime,
-            genre: movie.genre,
-            language: movie.language,
-            country: movie.country,
-            poster: movie.poster,
-            imdbRating: movie.imdbRating,
-            imdbVotes: movie.imdbVotes,
-            imdbID: movie.imdbID,
-            category: category.name,
-            _id: movie._id,
-          }))
-          .sort({ createdAt: -1 });
+        return movies.map((movie) => ({
+          title: movie.title,
+          plot: movie.plot,
+          year: movie.year,
+          rated: movie.rated,
+          released: movie.released,
+          runtime: movie.runtime,
+          genre: movie.genre,
+          language: movie.language,
+          country: movie.country,
+          poster: movie.poster,
+          imdbRating: movie.imdbRating,
+          imdbVotes: movie.imdbVotes,
+          imdbID: movie.imdbID,
+          category: category.name,
+          _id: movie._id,
+        }));
       }
       return [];
     });
@@ -174,28 +173,27 @@ const getAllSeriesBanner = async (req, res) => {
       const category = await Category.findOne({ name: categoryName });
       if (category) {
         const series = await Series.find({ category: category._id })
+          .sort({ createdAt: -1 })
           .limit(5)
           .exec();
-        return series
-          .map((s) => ({
-            title: s.title,
-            plot: s.plot,
-            year: s.year,
-            rated: s.rated,
-            released: s.released,
-            runtime: s.runtime,
-            genre: s.genre,
-            language: s.language,
-            country: s.country,
-            poster: s.poster,
-            imdbRating: s.imdbRating,
-            imdbVotes: s.imdbVotes,
-            imdbID: s.imdbID,
-            category: category.name,
-            totalSeasons: s.totalSeasons,
-            _id: s._id,
-          }))
-          .sort({ createdAt: -1 });
+        return series.map((s) => ({
+          title: s.title,
+          plot: s.plot,
+          year: s.year,
+          rated: s.rated,
+          released: s.released,
+          runtime: s.runtime,
+          genre: s.genre,
+          language: s.language,
+          country: s.country,
+          poster: s.poster,
+          imdbRating: s.imdbRating,
+          imdbVotes: s.imdbVotes,
+          imdbID: s.imdbID,
+          category: category.name,
+          totalSeasons: s.totalSeasons,
+          _id: s._id,
+        }));
       }
       return [];
     });
