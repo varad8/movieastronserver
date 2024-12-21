@@ -3,139 +3,277 @@ const Movie = require("../models/Movie");
 const Category = require("../models/Category");
 const dotenv = require("dotenv");
 const Series = require("../models/Series");
+const TMDB_API_KEY = process.env.TMDB_API_KEY;
+const TMDB_BASE_URL = process.env.TMDB_BASE_URL;
+const fs = require("fs");
+const path = require("path");
 
 dotenv.config();
+const TMDB_TOKEN = process.env.TMDB_TOKEN;
 
-//Get All Movie Banner for Homepage
+// Load genres from a JSON file once during initialization
+const genresFilePath = path.join(__dirname, "genre.json");
+let genres = [];
+
+// Map category to language
+let languageMap = {
+  bollywood: "hi", // Hindi
+  hollywood: "en", // English
+  tollywood: "te", // Telugu
+  kollywood: "ta", // Tamil
+  mollywood: "ml", // Malayalam
+  sandalwood: "kn", // Kannada
+  japanese: "ja", //Japanese
+  korean: "ko", //Korean
+};
+
+const loadGenres = () => {
+  try {
+    const data = fs.readFileSync(genresFilePath, "utf8");
+    genres = JSON.parse(data).genres || [];
+  } catch (error) {
+    console.error("Error loading genres:", error.message);
+    genres = [];
+  }
+};
+
+loadGenres(); // Initialize genres
+
+// Utility function to map genre IDs to names
+const getGenreNames = (genreIds) => {
+  return genreIds.map((id) => {
+    const genre = genres.find((genre) => genre.id === id);
+    return genre ? genre.name : "Unknown";
+  });
+};
+
 const getAllMovieBanner = async (req, res) => {
   try {
-    // Define categories to fetch
-    const categoriesToFetch = [
-      "Hollywood",
-      "Bollywood",
-      "Tollywood",
-      "Kids Movie",
-      "Anime Movie",
-    ];
-    const moviePromises = categoriesToFetch.map(async (categoryName) => {
-      const category = await Category.findOne({ name: categoryName });
-      if (category) {
-        const movies = await Movie.find({ category: category._id })
-          .sort({ createdAt: -1 })
-          .limit(5)
-          .exec();
-        return movies.map((movie) => ({
-          title: movie.title,
-          plot: movie.plot,
-          year: movie.year,
-          rated: movie.rated,
-          released: movie.released,
-          runtime: movie.runtime,
-          genre: movie.genre,
-          language: movie.language,
-          country: movie.country,
-          poster: movie.poster,
-          imdbRating: movie.imdbRating,
-          imdbVotes: movie.imdbVotes,
-          imdbID: movie.imdbID,
-          category: category.name,
-          _id: movie._id,
-        }));
+    // Fetch the most recent movies from the database, ordered by creation date
+    const recentMovies = await Movie.find().sort({ createdAt: -1 }).limit(5); // Fetching 5 most recent movies
+
+    // Fetch details for each movie from TMDb
+    const movieDetailsPromises = recentMovies.map(async (movie) => {
+      const tmdbUrl = `${TMDB_BASE_URL}movie/${movie.movieId}?language=en-US`;
+
+      const tmdbResponse = await fetch(tmdbUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          Authorization: `Bearer ${TMDB_TOKEN}`, // Use Bearer token for authentication
+        },
+      });
+
+      if (!tmdbResponse.ok) {
+        throw new Error(
+          `Failed to fetch TMDb data for movieId ${movie.movieId}`
+        );
       }
-      return [];
+
+      const tmdbData = await tmdbResponse.json();
+
+      // Return a combination of database data and TMDb data
+      return {
+        movieId: movie.movieId,
+        title: tmdbData.title,
+        backdropPath: tmdbData.backdrop_path,
+        posterPath: tmdbData.poster_path,
+        overview: tmdbData.overview,
+        releaseDate: tmdbData.release_date,
+        rating: tmdbData.vote_average,
+        genres: getGenreNames(tmdbData.genres.map((genre) => genre.id)),
+        downloadLinks: movie.downloadLinks,
+      };
     });
 
-    // Wait for all promises to resolve
-    const movieResults = await Promise.all(moviePromises);
+    // Wait for all the promises to resolve
+    const moviesWithDetails = await Promise.all(movieDetailsPromises);
 
-    // Combine results into a single response
-    const response = movieResults.flat();
+    // Return the data to the frontend
+    res.json(moviesWithDetails);
+  } catch (error) {
+    console.error("Error in getAllMovieBanner:", error.message);
+    res.status(500).json({ message: "Failed to fetch the latest movies." });
+  }
+};
 
-    // Send the response
+// Get Movies by Category
+const getAllMoviesByCategory = async (req, res) => {
+  const { categorytitle } = req.params;
+
+  try {
+    // Get the corresponding language code from the map
+    const language = languageMap[categorytitle.toLowerCase()];
+    if (!language) {
+      return res.status(400).json({ message: "Invalid category title." });
+    }
+
+    // Fetch all movie IDs from the database
+    const allMovies = await Movie.find();
+
+    // Fetch movie details from TMDb for each movie ID
+    const movieDetailsPromises = allMovies.map(async (movie) => {
+      const tmdbUrl = `${TMDB_BASE_URL}movie/${movie.movieId}?language=en`; // Fetch in English initially
+
+      const tmdbResponse = await fetch(tmdbUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          Authorization: `Bearer ${TMDB_TOKEN}`, // Use Bearer token for authentication
+        },
+      });
+
+      if (!tmdbResponse.ok) {
+        throw new Error(
+          `Failed to fetch TMDb data for movieId ${movie.movieId}`
+        );
+      }
+
+      const tmdbData = await tmdbResponse.json();
+
+      // Check if the movie's original language matches the expected language for the category
+      if (tmdbData.original_language === language) {
+        return {
+          movieId: movie.movieId,
+          title: tmdbData.title,
+          backdropPath: tmdbData.backdrop_path,
+          posterPath: tmdbData.poster_path,
+          overview: tmdbData.overview,
+          releaseDate: tmdbData.release_date,
+          rating: tmdbData.vote_average,
+          genres: tmdbData.genres.map((genre) => genre.name), // Genre names
+          downloadLinks: movie.downloadLinks, // From the DB
+        };
+      }
+
+      // If the language doesn't match, don't include the movie in the response
+      return null;
+    });
+
+    // Filter out null results and wait for all promises to resolve
+    const moviesWithDetails = (await Promise.all(movieDetailsPromises)).filter(
+      (movie) => movie !== null
+    );
+
+    // Return the movies with details to the frontend
+    res.json(moviesWithDetails);
+  } catch (error) {
+    console.error("Error fetching movies by category:", error.message);
+    res.status(500).json({ message: "Failed to fetch movies by category." });
+  }
+};
+
+const getMovieById = async (req, res) => {
+  try {
+    const { id: movieId } = req.params;
+
+    // Fetch movie from database
+    const movie = await Movie.findOne({ movieId });
+    if (!movie) {
+      return res.status(404).json({ message: "Movie not found in database." });
+    }
+
+    // Fetch movie details from TMDb
+    const tmdbUrl = `https://api.themoviedb.org/3/movie/${movieId}?append_to_response=credits,images,videos`;
+
+    const tmdbResponse = await fetch(tmdbUrl, {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        Authorization: `Bearer ${TMDB_TOKEN}`,
+      },
+    });
+
+    if (!tmdbResponse.ok) {
+      const errorData = await tmdbResponse.json();
+      console.error(
+        `TMDb API Error: ${tmdbResponse.status} - ${errorData.status_message}`
+      );
+      return res
+        .status(tmdbResponse.status)
+        .json({ message: `TMDb API Error: ${errorData.status_message}` });
+    }
+
+    const tmdbData = await tmdbResponse.json();
+
+    // Helper functions for transformations
+    const transformCast = (cast) =>
+      cast.map((member) => ({
+        id: member.id,
+        name: member.name,
+        character: member.character,
+        profilePath: member.profile_path,
+      }));
+
+    const transformCrew = (crew) =>
+      crew.map((member) => ({
+        id: member.id,
+        name: member.name,
+        job: member.job,
+        profilePath: member.profile_path,
+      }));
+
+    const transformImages = (images) =>
+      images.map((image) => ({
+        filePath: image.file_path,
+        width: image.width,
+        height: image.height,
+      }));
+
+    const findTrailer = (videos) =>
+      videos?.find(
+        (video) => video.type === "Trailer" && video.site === "YouTube"
+      )?.key;
+
+    // Transform TMDb data
+    const cast = transformCast(tmdbData.credits.cast);
+    const crew = transformCrew(tmdbData.credits.crew);
+    const backdrops = transformImages(tmdbData.images.backdrops);
+    const posters = transformImages(tmdbData.images.posters);
+    const trailerKey = findTrailer(tmdbData.videos.results);
+    const trailerUrl = trailerKey
+      ? `https://www.youtube.com/watch?v=${trailerKey}`
+      : null;
+
+    const transformedDownloadLinks = movie.downloadLinks.map((link) => ({
+      quality: link.quality,
+      size: link.size,
+      link: link.link,
+    }));
+
+    // Combine media data under a 'media' object
+    const media = {
+      backdrops,
+      posters,
+      trailer: trailerUrl,
+    };
+
+    // Combined response with the media object
+    const response = {
+      ...movie.toObject(),
+      downloadLinks: transformedDownloadLinks,
+      tmdbDetails: {
+        title: tmdbData.title,
+        overview: tmdbData.overview,
+        releaseDate: tmdbData.release_date,
+        runtime: tmdbData.runtime,
+        genres: tmdbData.genres.map((genre) => genre.name),
+        cast,
+        crew,
+        popularity: tmdbData.popularity,
+        vote_average: tmdbData.vote_average,
+        vote_count: tmdbData.vote_count,
+        tagline: tmdbData.tagline,
+        poster_path: tmdbData.poster_path,
+        backdrop_path: tmdbData.backdrop_path,
+      },
+      media, // Include the media object here
+    };
+
     res.status(200).json(response);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "An unexpected error occurred" });
-  }
-};
-
-// Get All  Movies by Category
-const getAllMoviesByCategory = async (req, res) => {
-  const { categorytitle } = req.params; // Extract category title from URL parameters
-  const { genre, year, imdbRating } = req.query; // Extract filters from query parameters
-
-  const query = {}; // Initialize query object
-
-  // Add filters to query object if they exist
-  if (genre) query.genre = genre;
-  if (year) query.year = year;
-  if (imdbRating) query.imdbRating = imdbRating;
-
-  try {
-    // Find the category by title
-    const categoryDoc = await Category.findOne({ name: categorytitle });
-    if (!categoryDoc) {
-      return res.status(404).json({ message: "Category not found" });
-    }
-
-    // Add the category filter to the query object
-    query.category = categoryDoc._id;
-
-    let movies;
-    if (Object.keys(req.query).length === 0) {
-      // If no filters provided, return all movies with the specified category and fields
-      movies = await Movie.find(
-        { category: categoryDoc._id },
-        {
-          poster: 1,
-          title: 1,
-          genre: 1,
-          year: 1,
-          country: 1,
-          language: 1,
-          imdbRating: 1,
-          runtime: 1,
-          category: 1,
-          imdbID: 1,
-          _id: 1,
-          released: 1,
-        }
-      ).sort({ createdAt: -1 });
-    } else {
-      // If filters provided, return query result with specified fields
-      movies = await Movie.find(query, {
-        poster: 1,
-        title: 1,
-        genre: 1,
-        year: 1,
-        country: 1,
-        language: 1,
-        imdbRating: 1,
-        runtime: 1,
-        category: 1,
-        imdbID: 1,
-        _id: 1,
-      }).sort({ createdAt: -1 });
-    }
-
-    res.json(movies);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Server error" });
-  }
-};
-
-//Get Movie BY ID
-const getMovieById = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const movie = await Movie.findById(id).populate("category");
-    if (!movie) {
-      return res.status(404).send({ error: "Movie not found." });
-    }
-    res.send(movie);
-  } catch (error) {
-    res.status(400).send({ error: "Error fetching movie." });
+    console.error("Internal Server Error:", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
@@ -155,7 +293,6 @@ const getMoviesCountByCategory = async (req, res) => {
 
     res.status(200).json({ count });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

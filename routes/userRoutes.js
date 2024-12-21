@@ -19,7 +19,7 @@ router.get(
   secretMiddleware,
   getAllMoviesByCategory
 );
-router.get("/movies/:id", secretMiddleware, getMovieById);
+router.get("/movies/:id", getMovieById);
 router.get(
   "/movies/count/:category",
   secretMiddleware,
