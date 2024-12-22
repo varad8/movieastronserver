@@ -277,6 +277,80 @@ const getMovieById = async (req, res) => {
   }
 };
 
+const getTrendingMovies = async (req, res) => {
+  try {
+    const { dayweek } = req.params;
+    console.log(req.params);
+
+    // Function to fetch data from TMDb
+    const fetchTmdbData = async (url) => {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          Authorization: `Bearer ${TMDB_TOKEN}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch data from TMDb.");
+      }
+
+      return await response.json();
+    };
+
+    // Fetch all movies from the database
+    const allMovies = await Movie.find({});
+
+    // Fetch trending movies from TMDb
+    const tmdbUrl = `${TMDB_BASE_URL}trending/movie/${dayweek}?language=en-US`;
+    const tmdbData = await fetchTmdbData(tmdbUrl);
+
+    // Function to get movie details (cast, crew, backdrops, etc.)
+    const getMovieDetails = async (tmdbMovie) => {
+      // Check if the movie exists in the database
+      const movieInDb = allMovies.find(
+        (movie) => movie.movieId === tmdbMovie.id
+      );
+
+      // Build the movie details structure with or without DB data
+      const movieDetails = {
+        movieId: tmdbMovie.id,
+        title: tmdbMovie.title,
+        posterPath: tmdbMovie.poster_path,
+        backdropPath: tmdbMovie.backdrop_path,
+        overview: tmdbMovie.overview,
+        releaseDate: tmdbMovie.release_date,
+        rating: tmdbMovie.vote_average,
+        genres: getGenreNames(tmdbMovie.genre_ids),
+        downloadLinks: [],
+      };
+
+      // If the movie exists in the database, add download links and additional details
+      if (movieInDb) {
+        movieDetails.downloadLinks = movieInDb.downloadLinks || [];
+
+        // Fetch additional movie details from TMDb
+        const movieDetailUrl = `${TMDB_BASE_URL}movie/${tmdbMovie.id}?append_to_response=credits,images,videos,release_dates`;
+        const detailedMovieData = await fetchTmdbData(movieDetailUrl);
+      }
+
+      return movieDetails;
+    };
+
+    // Process each trending movie in parallel and fetch their details
+    const trendingMovies = await Promise.all(
+      tmdbData.results.map((tmdbMovie) => getMovieDetails(tmdbMovie))
+    );
+
+    // Return the combined movie data
+    res.json(trendingMovies);
+  } catch (error) {
+    console.error("Error in getTrendingMovies:", error.message);
+    res.status(500).json({ message: "Failed to fetch trending movies." });
+  }
+};
+
 // Get Movie Count By Category
 const getMoviesCountByCategory = async (req, res) => {
   try {
@@ -453,6 +527,7 @@ const getSeriesCountByCategory = async (req, res) => {
 module.exports = {
   getAllMovieBanner,
   getAllMoviesByCategory,
+  getTrendingMovies,
   getMovieById,
   getMoviesCountByCategory,
   getAllSeriesBanner,

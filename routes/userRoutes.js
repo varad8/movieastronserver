@@ -3,6 +3,7 @@ const {
   getAllMovieBanner,
   getAllMoviesByCategory,
   getMovieById,
+  getTrendingMovies,
   getMoviesCountByCategory,
   getAllSeriesBanner,
   getAllSeriesByCategory,
@@ -20,6 +21,9 @@ router.get(
   getAllMoviesByCategory
 );
 router.get("/movies/:id", getMovieById);
+// Route for trending movies
+router.get("/movies/trending/:dayweek", getTrendingMovies); // New route for trending movies
+
 router.get(
   "/movies/count/:category",
   secretMiddleware,
