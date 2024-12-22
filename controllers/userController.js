@@ -163,15 +163,126 @@ const getAllMoviesByCategory = async (req, res) => {
   }
 };
 
+// const getMovieById = async (req, res) => {
+//   try {
+//     const { id: movieId } = req.params;
+
+//     // Fetch movie from database
+//     const movie = await Movie.findOne({ movieId });
+//     if (!movie) {
+//       return res.status(404).json({ message: "Movie not found in database." });
+//     }
+
+//     // Fetch movie details from TMDb
+//     const tmdbUrl = `https://api.themoviedb.org/3/movie/${movieId}?append_to_response=credits,images,videos`;
+
+//     const tmdbResponse = await fetch(tmdbUrl, {
+//       method: "GET",
+//       headers: {
+//         accept: "application/json",
+//         Authorization: `Bearer ${TMDB_TOKEN}`,
+//       },
+//     });
+
+//     if (!tmdbResponse.ok) {
+//       const errorData = await tmdbResponse.json();
+//       console.error(
+//         `TMDb API Error: ${tmdbResponse.status} - ${errorData.status_message}`
+//       );
+//       return res
+//         .status(tmdbResponse.status)
+//         .json({ message: `TMDb API Error: ${errorData.status_message}` });
+//     }
+
+//     const tmdbData = await tmdbResponse.json();
+
+//     // Helper functions for transformations
+//     const transformCast = (cast) =>
+//       cast.map((member) => ({
+//         id: member.id,
+//         name: member.name,
+//         character: member.character,
+//         profilePath: member.profile_path,
+//       }));
+
+//     const transformCrew = (crew) =>
+//       crew.map((member) => ({
+//         id: member.id,
+//         name: member.name,
+//         job: member.job,
+//         profilePath: member.profile_path,
+//       }));
+
+//     const transformImages = (images) =>
+//       images.map((image) => ({
+//         filePath: image.file_path,
+//         width: image.width,
+//         height: image.height,
+//       }));
+
+//     const findTrailer = (videos) =>
+//       videos?.find(
+//         (video) => video.type === "Trailer" && video.site === "YouTube"
+//       )?.key;
+
+//     // Transform TMDb data
+//     const cast = transformCast(tmdbData.credits.cast);
+//     const crew = transformCrew(tmdbData.credits.crew);
+//     const backdrops = transformImages(tmdbData.images.backdrops);
+//     const posters = transformImages(tmdbData.images.posters);
+//     const trailerKey = findTrailer(tmdbData.videos.results);
+//     const trailerUrl = trailerKey
+//       ? `https://www.youtube.com/watch?v=${trailerKey}`
+//       : null;
+
+//     const transformedDownloadLinks = movie.downloadLinks.map((link) => ({
+//       quality: link.quality,
+//       size: link.size,
+//       link: link.link,
+//     }));
+
+//     // Combine media data under a 'media' object
+//     const media = {
+//       backdrops,
+//       posters,
+//       trailer: trailerUrl,
+//     };
+
+//     // Combined response with the media object
+//     const response = {
+//       ...movie.toObject(),
+//       downloadLinks: transformedDownloadLinks,
+//       tmdbDetails: {
+//         title: tmdbData.title,
+//         overview: tmdbData.overview,
+//         releaseDate: tmdbData.release_date,
+//         runtime: tmdbData.runtime,
+//         genres: tmdbData.genres.map((genre) => genre.name),
+//         cast,
+//         crew,
+//         popularity: tmdbData.popularity,
+//         vote_average: tmdbData.vote_average,
+//         vote_count: tmdbData.vote_count,
+//         tagline: tmdbData.tagline,
+//         poster_path: tmdbData.poster_path,
+//         backdrop_path: tmdbData.backdrop_path,
+//       },
+//       media, // Include the media object here
+//     };
+
+//     res.status(200).json(response);
+//   } catch (error) {
+//     console.error("Internal Server Error:", error.message);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// };
+
 const getMovieById = async (req, res) => {
   try {
     const { id: movieId } = req.params;
 
     // Fetch movie from database
     const movie = await Movie.findOne({ movieId });
-    if (!movie) {
-      return res.status(404).json({ message: "Movie not found in database." });
-    }
 
     // Fetch movie details from TMDb
     const tmdbUrl = `https://api.themoviedb.org/3/movie/${movieId}?append_to_response=credits,images,videos`;
@@ -235,11 +346,14 @@ const getMovieById = async (req, res) => {
       ? `https://www.youtube.com/watch?v=${trailerKey}`
       : null;
 
-    const transformedDownloadLinks = movie.downloadLinks.map((link) => ({
-      quality: link.quality,
-      size: link.size,
-      link: link.link,
-    }));
+    // If movie is not found in DB, set downloadLinks to empty array
+    const transformedDownloadLinks = movie
+      ? movie.downloadLinks.map((link) => ({
+          quality: link.quality,
+          size: link.size,
+          link: link.link,
+        }))
+      : [];
 
     // Combine media data under a 'media' object
     const media = {
@@ -250,8 +364,8 @@ const getMovieById = async (req, res) => {
 
     // Combined response with the media object
     const response = {
-      ...movie.toObject(),
-      downloadLinks: transformedDownloadLinks,
+      movieId: movieId,
+      downloadLinks: transformedDownloadLinks, // Empty if not in DB
       tmdbDetails: {
         title: tmdbData.title,
         overview: tmdbData.overview,
