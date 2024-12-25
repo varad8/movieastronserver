@@ -221,7 +221,7 @@ module.exports = {
       // Transform downloadLinks to include the desired URL structure
       const transformedDownloadLinks = downloadLinks.map((link) => ({
         ...link,
-        link: `https://t.me/vrnstream_bot?start=${link.link}`,
+        link: `https://t.me/movie_mva_bot?start=${link.link}`,
       }));
 
       // Create a new movie with the transformed downloadLinks
@@ -253,7 +253,7 @@ module.exports = {
       // Transform downloadLinks to include the desired URL structure
       const transformedDownloadLinks = downloadLinks.map((link) => ({
         ...link,
-        link: `https://t.me/vrnstream_bot?start=${link.link}`,
+        link: `https://t.me/movie_mva_bot?start=${link.link}`,
       }));
 
       // Update the movie with the transformed downloadLinks
