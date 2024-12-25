@@ -194,7 +194,7 @@ module.exports = {
       const transformedDownloadLinks = movie.downloadLinks.map((link) => ({
         quality: link.quality, // Keep the quality as it is
         size: link.size, // Keep the size as it is
-        link: link.link.replace("https://t.me/vrnstream_bot?start=+", ""), // Modify only the link
+        link: link.link.replace("https://t.me/movie_mva_bot?start=+", ""), // Modify only the link
       }));
 
       // Return the movie with the transformed downloadLinks
