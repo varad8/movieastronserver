@@ -190,12 +190,15 @@ module.exports = {
         return res.status(404).json({ message: "Movie not found" });
       }
 
-      // Transform downloadLinks to modify the link but keep quality and size as it is
-      const transformedDownloadLinks = movie.downloadLinks.map((link) => ({
-        quality: link.quality, // Keep the quality as it is
-        size: link.size, // Keep the size as it is
-        link: link.link.replace("https://t.me/movie_mva_bot?start=+", ""), // Modify only the link
-      }));
+      // Transform downloadLinks to extract the 'start=' part and the value that follows
+      const transformedDownloadLinks = movie.downloadLinks.map((link) => {
+        const startPart = link.link.split("start=")[1] || ""; // Extract the part after 'start='
+        return {
+          quality: link.quality, // Keep the quality as it is
+          size: link.size, // Keep the size as it is
+          link: startPart, // Replace the link with the extracted part
+        };
+      });
 
       // Return the movie with the transformed downloadLinks
       res.status(200).json({
