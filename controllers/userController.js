@@ -97,7 +97,6 @@ const getAllMovieBanner = async (req, res) => {
   }
 };
 
-// Get Movies by Category
 const getAllMoviesByCategory = async (req, res) => {
   const { categorytitle } = req.params;
 
@@ -131,6 +130,14 @@ const getAllMoviesByCategory = async (req, res) => {
 
       const tmdbData = await tmdbResponse.json();
 
+      // Check for Anime category and validate genre ID 16
+      if (
+        categorytitle.toLowerCase() === "anime" &&
+        !tmdbData.genres.some((genre) => genre.id === 16)
+      ) {
+        return null; // Exclude movies that are not in the Anime genre
+      }
+
       // Check if the movie's original language matches the expected language for the category
       if (tmdbData.original_language === language) {
         return {
@@ -146,7 +153,7 @@ const getAllMoviesByCategory = async (req, res) => {
         };
       }
 
-      // If the language doesn't match, don't include the movie in the response
+      // If the language doesn't match, exclude the movie
       return null;
     });
 
