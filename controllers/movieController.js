@@ -58,9 +58,21 @@ module.exports = {
 
       let tmdbUrl;
 
-      // Case 1: AnimeMovie category (Special handling for genre 16)
+      // Case 1: AnimeMovie category with name and/or year (special handling for genre 16)
       if (category.toLowerCase() === "anime") {
-        tmdbUrl = `https://api.themoviedb.org/3/discover/movie?sort_by=release_date.desc&page=${page}&language=en-US&with_genres=16`;
+        if (name && year) {
+          tmdbUrl = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(
+            name
+          )}&page=${page}&language=en-US&with_genres=16&primary_release_year=${year}`;
+        } else if (name) {
+          tmdbUrl = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(
+            name
+          )}&page=${page}&language=en-US&with_genres=16`;
+        } else if (year) {
+          tmdbUrl = `https://api.themoviedb.org/3/discover/movie?sort_by=release_date.desc&page=${page}&language=en-US&with_genres=16&primary_release_year=${year}`;
+        } else {
+          tmdbUrl = `https://api.themoviedb.org/3/discover/movie?sort_by=release_date.desc&page=${page}&language=en-US&with_genres=16`;
+        }
       }
       // Case 2: Both category and name are provided
       else if (languageMap[category.toLowerCase()] && name) {
@@ -83,8 +95,10 @@ module.exports = {
         }`;
       }
 
-      // Add year filter if provided
-      if (year) tmdbUrl += `&primary_release_year=${year}`;
+      // Add year filter if provided (and not already handled in the Anime case)
+      if (year && category.toLowerCase() !== "anime") {
+        tmdbUrl += `&primary_release_year=${year}`;
+      }
 
       // Fetch movies from TMDB using fetch API
       const response = await fetch(tmdbUrl, {
@@ -133,7 +147,6 @@ module.exports = {
       res.status(500).json({ message: "Error fetching movies." });
     }
   },
-
   fetchMovieById: async (req, res) => {
     try {
       const { id: movieId } = req.params;
