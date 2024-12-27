@@ -74,6 +74,7 @@ module.exports = {
           tmdbUrl = `https://api.themoviedb.org/3/discover/movie?sort_by=release_date.desc&page=${page}&language=en-US&with_genres=16`;
         }
       }
+
       // Case 2: Both category and name are provided
       else if (languageMap[category.toLowerCase()] && name) {
         tmdbUrl = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(
