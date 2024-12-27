@@ -23,6 +23,7 @@ let languageMap = {
   sandalwood: "kn", // Kannada
   japanese: "ja", //Japanese
   korean: "ko", //Korean
+  animemovie: "16",
 };
 
 const loadGenres = () => {
@@ -57,21 +58,25 @@ module.exports = {
 
       let tmdbUrl;
 
-      // Case 1: Both category and name are provided
-      if (languageMap[category.toLowerCase()] && name) {
+      // Case 1: AnimeMovie category (Special handling for genre 16)
+      if (category.toLowerCase() === "animemovie") {
+        tmdbUrl = `https://api.themoviedb.org/3/discover/movie?sort_by=release_date.desc&page=${page}&language=en-US&with_genres=16`;
+      }
+      // Case 2: Both category and name are provided
+      else if (languageMap[category.toLowerCase()] && name) {
         tmdbUrl = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(
           name
         )}&page=${page}&language=en-US&with_original_language=${
           languageMap[category.toLowerCase()]
         }`;
       }
-      // Case 2: Only name is provided
+      // Case 3: Only name is provided
       else if (name) {
         tmdbUrl = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(
           name
         )}&page=${page}&language=en-US`;
       }
-      // Case 3: Only category is provided
+      // Case 4: Only category is provided
       else if (languageMap[category.toLowerCase()]) {
         tmdbUrl = `https://api.themoviedb.org/3/discover/movie?sort_by=release_date.desc&page=${page}&language=en-US&with_original_language=${
           languageMap[category.toLowerCase()]
