@@ -23,7 +23,7 @@ let languageMap = {
   sandalwood: "kn", // Kannada
   japanese: "ja", //Japanese
   korean: "ko", //Korean
-  animemovie: "16",
+  anime: "16",
 };
 
 const loadGenres = () => {
@@ -59,7 +59,7 @@ module.exports = {
       let tmdbUrl;
 
       // Case 1: AnimeMovie category (Special handling for genre 16)
-      if (category.toLowerCase() === "animemovie") {
+      if (category.toLowerCase() === "anime") {
         tmdbUrl = `https://api.themoviedb.org/3/discover/movie?sort_by=release_date.desc&page=${page}&language=en-US&with_genres=16`;
       }
       // Case 2: Both category and name are provided
