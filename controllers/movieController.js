@@ -39,20 +39,11 @@ const loadGenres = () => {
 loadGenres(); // Initialize genres
 
 // Utility function to map genre IDs to names
-const getGenreNames = (genreIds, category) => {
-  return genreIds
-    .map((id) => {
-      const genre = genres.find((genre) => genre.id === id);
-      if (
-        category.toLowerCase() !== "anime" &&
-        genre &&
-        genre.name === "Animation"
-      ) {
-        return null; // Skip "Animation" genre if category is not "anime"
-      }
-      return genre ? genre.name : "Unknown";
-    })
-    .filter(Boolean); // Remove null values
+const getGenreNames = (genreIds) => {
+  return genreIds.map((id) => {
+    const genre = genres.find((genre) => genre.id === id);
+    return genre ? genre.name : "Unknown";
+  });
 };
 
 module.exports = {
@@ -131,7 +122,15 @@ module.exports = {
 
       const tmdbData = await response.json();
 
-      const movies = tmdbData.results.map((movie) => ({
+      // Filter out movies with genre ID 16 if the category is not "anime"
+      const filteredMovies = tmdbData.results.filter((movie) => {
+        if (category.toLowerCase() !== "anime") {
+          return !movie.genre_ids.includes(16);
+        }
+        return true;
+      });
+
+      const movies = filteredMovies.map((movie) => ({
         movieId: movie.id.toString(),
         title: movie.title,
         release_date: movie.release_date,
@@ -144,7 +143,7 @@ module.exports = {
         popularity: movie.popularity,
         vote_average: movie.vote_average,
         vote_count: movie.vote_count,
-        genres: getGenreNames(movie.genre_ids, category),
+        genres: getGenreNames(movie.genre_ids),
       }));
 
       res.status(200).json({
@@ -199,10 +198,7 @@ module.exports = {
         popularity: movie.popularity,
         vote_average: movie.vote_average,
         vote_count: movie.vote_count,
-        genres: getGenreNames(
-          movie.genres.map((genre) => genre.id),
-          "anime"
-        ),
+        genres: getGenreNames(movie.genres.map((genre) => genre.id)),
       };
 
       res.status(200).json(movieDetails);
