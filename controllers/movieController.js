@@ -81,19 +81,19 @@ module.exports = {
           name
         )}&page=${page}&language=en-US&with_original_language=${
           languageMap[category.toLowerCase()]
-        }`;
+        }&without_genres=16`;
       }
       // Case 3: Only name is provided
       else if (name) {
         tmdbUrl = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(
           name
-        )}&page=${page}&language=en-US`;
+        )}&page=${page}&language=en-US&without_genres=16`;
       }
       // Case 4: Only category is provided
       else if (languageMap[category.toLowerCase()]) {
         tmdbUrl = `https://api.themoviedb.org/3/discover/movie?sort_by=release_date.desc&page=${page}&language=en-US&with_original_language=${
           languageMap[category.toLowerCase()]
-        }`;
+        }&without_genres=16`;
       }
 
       // Add year filter if provided (and not already handled in the Anime case)
