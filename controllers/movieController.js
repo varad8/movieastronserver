@@ -122,15 +122,7 @@ module.exports = {
 
       const tmdbData = await response.json();
 
-      // Filter out movies with genre ID 16 if the category is not "anime"
-      const filteredMovies = tmdbData.results.filter((movie) => {
-        if (category.toLowerCase() !== "anime") {
-          return !movie.genre_ids.includes(16);
-        }
-        return true;
-      });
-
-      const movies = filteredMovies.map((movie) => ({
+      const movies = tmdbData.results.map((movie) => ({
         movieId: movie.id.toString(),
         title: movie.title,
         release_date: movie.release_date,
