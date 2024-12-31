@@ -39,11 +39,20 @@ const loadGenres = () => {
 loadGenres(); // Initialize genres
 
 // Utility function to map genre IDs to names
-const getGenreNames = (genreIds) => {
-  return genreIds.map((id) => {
-    const genre = genres.find((genre) => genre.id === id);
-    return genre ? genre.name : "Unknown";
-  });
+const getGenreNames = (genreIds, category) => {
+  return genreIds
+    .map((id) => {
+      const genre = genres.find((genre) => genre.id === id);
+      if (
+        category.toLowerCase() !== "anime" &&
+        genre &&
+        genre.name === "Animation"
+      ) {
+        return null; // Skip "Animation" genre if category is not "anime"
+      }
+      return genre ? genre.name : "Unknown";
+    })
+    .filter(Boolean); // Remove null values
 };
 
 module.exports = {
@@ -122,29 +131,21 @@ module.exports = {
 
       const tmdbData = await response.json();
 
-      const movies = tmdbData.results.map((movie) => {
-        // Filter out genre ID 16 for non-anime categories
-        const filteredGenreIds =
-          category.toLowerCase() === "anime"
-            ? movie.genre_ids
-            : movie.genre_ids.filter((id) => id !== 16);
-
-        return {
-          movieId: movie.id.toString(),
-          title: movie.title,
-          release_date: movie.release_date,
-          category,
-          downloadLinks: [],
-          original_language: movie.original_language,
-          overview: movie.overview,
-          poster_path: movie.poster_path,
-          backdrop_path: movie.backdrop_path,
-          popularity: movie.popularity,
-          vote_average: movie.vote_average,
-          vote_count: movie.vote_count,
-          genres: getGenreNames(filteredGenreIds),
-        };
-      });
+      const movies = tmdbData.results.map((movie) => ({
+        movieId: movie.id.toString(),
+        title: movie.title,
+        release_date: movie.release_date,
+        category,
+        downloadLinks: [],
+        original_language: movie.original_language,
+        overview: movie.overview,
+        poster_path: movie.poster_path,
+        backdrop_path: movie.backdrop_path,
+        popularity: movie.popularity,
+        vote_average: movie.vote_average,
+        vote_count: movie.vote_count,
+        genres: getGenreNames(movie.genre_ids, category),
+      }));
 
       res.status(200).json({
         movies,
@@ -198,7 +199,10 @@ module.exports = {
         popularity: movie.popularity,
         vote_average: movie.vote_average,
         vote_count: movie.vote_count,
-        genres: getGenreNames(movie.genres.map((genre) => genre.id)),
+        genres: getGenreNames(
+          movie.genres.map((genre) => genre.id),
+          "anime"
+        ),
       };
 
       res.status(200).json(movieDetails);
