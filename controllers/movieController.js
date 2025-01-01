@@ -121,8 +121,19 @@ module.exports = {
       }
 
       const tmdbData = await response.json();
+      // Filter movies based on the category requirements
+      const filteredMovies = tmdbData.results.filter((movie) => {
+        if (category.toLowerCase() === "anime") {
+          // Include only movies with genre_id 16
+          return movie.genre_ids.includes(16);
+        } else {
+          // Exclude movies with genre_id 16 for non-anime categories
+          return !movie.genre_ids.includes(16);
+        }
+      });
 
-      const movies = tmdbData.results.map((movie) => ({
+      // Map and format the movie data
+      const movies = filteredMovies.map((movie) => ({
         movieId: movie.id.toString(),
         title: movie.title,
         release_date: movie.release_date,
@@ -148,6 +159,7 @@ module.exports = {
       res.status(500).json({ message: "Error fetching movies." });
     }
   },
+
   fetchMovieById: async (req, res) => {
     try {
       const { id: movieId } = req.params;
