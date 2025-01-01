@@ -139,12 +139,15 @@ module.exports = {
         genres: getGenreNames(movie.genre_ids),
       }));
 
-      // Filter movies based on the "anime" category and genres
+      // Filter movies based on the category and genres
       const filteredMovies = formattedMovies.filter((movie) => {
         if (category.toLowerCase() === "anime") {
-          return movie.genres.includes("Animation"); // Ensure the genres include "Animation"
+          // If category is anime, include only movies with "Animation" genre
+          return movie.genres.includes("Animation");
+        } else {
+          // If not anime, exclude movies with "Animation" genre
+          return !movie.genres.includes("Animation");
         }
-        return true; // No filtering for other categories
       });
 
       res.status(200).json({
