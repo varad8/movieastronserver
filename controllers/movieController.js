@@ -140,7 +140,7 @@ module.exports = {
       }));
 
       // Filter movies based on the category and genres
-      const filteredMovies = formattedMovies.filter((movie) => {
+      const filteredMovies = movies.filter((movie) => {
         if (category.toLowerCase() === "anime") {
           // If category is anime, include only movies with "Animation" genre
           return movie.genres.includes("Animation");
