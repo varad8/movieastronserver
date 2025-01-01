@@ -102,9 +102,11 @@ const getAllMoviesByCategory = async (req, res) => {
   const { categorytitle } = req.params;
 
   try {
-    // Get the corresponding language code from the map
-    const language = languageMap[categorytitle.toLowerCase()];
-    if (!language) {
+    // Check if the category is anime
+    const isAnime = categorytitle.toLowerCase() === "anime";
+
+    // Validate the category
+    if (!isAnime && !languageMap[categorytitle.toLowerCase()]) {
       return res.status(400).json({ message: "Invalid category title." });
     }
 
@@ -113,13 +115,13 @@ const getAllMoviesByCategory = async (req, res) => {
 
     // Fetch movie details from TMDb for each movie ID
     const movieDetailsPromises = allMovies.map(async (movie) => {
-      const tmdbUrl = `${TMDB_BASE_URL}movie/${movie.movieId}?language=en`; // Fetch in English initially
+      const tmdbUrl = `${TMDB_BASE_URL}movie/${movie.movieId}?language=en`;
 
       const tmdbResponse = await fetch(tmdbUrl, {
         method: "GET",
         headers: {
           accept: "application/json",
-          Authorization: `Bearer ${TMDB_TOKEN}`, // Use Bearer token for authentication
+          Authorization: `Bearer ${TMDB_TOKEN}`,
         },
       });
 
@@ -132,38 +134,37 @@ const getAllMoviesByCategory = async (req, res) => {
       const tmdbData = await tmdbResponse.json();
 
       // Check for Anime category and validate genre ID 16
-      if (
-        categorytitle.toLowerCase() === "anime" &&
-        !tmdbData.genres.some((genre) => genre.id === 16)
-      ) {
+      if (isAnime && !tmdbData.genres.some((genre) => genre.id === 16)) {
         return null; // Exclude movies that are not in the Anime genre
       }
 
       // Exclude movies with "Animation" genre when the category is not "anime"
       if (
-        categorytitle.toLowerCase() !== "anime" &&
+        !isAnime &&
         tmdbData.genres.some((genre) => genre.name === "Animation")
       ) {
         return null;
       }
 
-      // Check if the movie's original language matches the expected language for the category
-      if (tmdbData.original_language === language) {
-        return {
-          movieId: movie.movieId,
-          title: tmdbData.title,
-          backdropPath: tmdbData.backdrop_path,
-          posterPath: tmdbData.poster_path,
-          overview: tmdbData.overview,
-          releaseDate: tmdbData.release_date,
-          rating: tmdbData.vote_average,
-          genres: tmdbData.genres.map((genre) => genre.name), // Genre names
-          downloadLinks: movie.downloadLinks, // From the DB
-        };
+      // For non-anime categories, validate original language
+      if (
+        !isAnime &&
+        tmdbData.original_language !== languageMap[categorytitle.toLowerCase()]
+      ) {
+        return null;
       }
 
-      // If the language doesn't match, exclude the movie
-      return null;
+      return {
+        movieId: movie.movieId,
+        title: tmdbData.title,
+        backdropPath: tmdbData.backdrop_path,
+        posterPath: tmdbData.poster_path,
+        overview: tmdbData.overview,
+        releaseDate: tmdbData.release_date,
+        rating: tmdbData.vote_average,
+        genres: tmdbData.genres.map((genre) => genre.name),
+        downloadLinks: movie.downloadLinks, // From the DB
+      };
     });
 
     // Filter out null results and wait for all promises to resolve
