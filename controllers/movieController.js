@@ -121,20 +121,9 @@ module.exports = {
       }
 
       const tmdbData = await response.json();
-      // Filter movies based on the category requirements
-      const filteredMovies = tmdbData.results.filter((movie) => {
-        if (category.toLowerCase() === "anime") {
-          // Include only movies with genre_id 16
-          console.log("Im here");
-          return movie.genre_ids.includes(16);
-        } else {
-          // Exclude movies with genre_id 16 for non-anime categories
-          return !movie.genre_ids.includes(16);
-        }
-      });
 
       // Map and format the movie data
-      const movies = filteredMovies.map((movie) => ({
+      const movies = tmdbData.map((movie) => ({
         movieId: movie.id.toString(),
         title: movie.title,
         release_date: movie.release_date,
@@ -150,8 +139,16 @@ module.exports = {
         genres: getGenreNames(movie.genre_ids),
       }));
 
+      // Filter movies based on the "anime" category and genres
+      const filteredMovies = formattedMovies.filter((movie) => {
+        if (category.toLowerCase() === "anime") {
+          return movie.genres.includes("Animation"); // Ensure the genres include "Animation"
+        }
+        return true; // No filtering for other categories
+      });
+
       res.status(200).json({
-        movies,
+        filteredMovies,
         currentPage: parseInt(page, 10),
         totalPages: Math.ceil(tmdbData.total_results / limit),
       });
