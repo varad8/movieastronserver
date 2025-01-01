@@ -125,6 +125,7 @@ module.exports = {
       const filteredMovies = tmdbData.results.filter((movie) => {
         if (category.toLowerCase() === "anime") {
           // Include only movies with genre_id 16
+          console.log("Im here");
           return movie.genre_ids.includes(16);
         } else {
           // Exclude movies with genre_id 16 for non-anime categories
