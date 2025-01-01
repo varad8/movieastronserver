@@ -25,6 +25,7 @@ let languageMap = {
   sandalwood: "kn", // Kannada
   japanese: "ja", //Japanese
   korean: "ko", //Korean
+  anime: "16",
 };
 
 const loadGenres = () => {
