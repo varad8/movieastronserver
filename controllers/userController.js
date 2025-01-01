@@ -298,7 +298,7 @@ const getMovieById = async (req, res) => {
   try {
     const { id: movieId } = req.params;
 
-    // Fetch movie from database
+    // Fetch movie from the database
     const movie = await Movie.findOne({ movieId });
 
     // Fetch movie details from TMDb
@@ -353,6 +353,15 @@ const getMovieById = async (req, res) => {
         (video) => video.type === "Trailer" && video.site === "YouTube"
       )?.key;
 
+    const transformVideos = (videos) =>
+      videos.map((video) => ({
+        id: video.id,
+        name: video.name,
+        site: video.site,
+        type: video.type,
+        key: video.key,
+      }));
+
     // Transform TMDb data
     const cast = transformCast(tmdbData.credits.cast);
     const crew = transformCrew(tmdbData.credits.crew);
@@ -362,6 +371,7 @@ const getMovieById = async (req, res) => {
     const trailerUrl = trailerKey
       ? `https://www.youtube.com/watch?v=${trailerKey}`
       : null;
+    const videos = transformVideos(tmdbData.videos.results);
 
     // If movie is not found in DB, set downloadLinks to empty array
     const transformedDownloadLinks = movie
@@ -377,6 +387,7 @@ const getMovieById = async (req, res) => {
       backdrops,
       posters,
       trailer: trailerUrl,
+      videos, // Include all videos here
     };
 
     // Combined response with the media object
