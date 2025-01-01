@@ -138,6 +138,14 @@ const getAllMoviesByCategory = async (req, res) => {
         return null; // Exclude movies that are not in the Anime genre
       }
 
+      // Exclude movies with "Animation" genre when the category is not "anime"
+      if (
+        categorytitle.toLowerCase() !== "anime" &&
+        tmdbData.genres.some((genre) => genre.name === "Animation")
+      ) {
+        return null;
+      }
+
       // Check if the movie's original language matches the expected language for the category
       if (tmdbData.original_language === language) {
         return {

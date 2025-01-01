@@ -122,8 +122,7 @@ module.exports = {
 
       const tmdbData = await response.json();
 
-      // Map and format the movie data
-      const movies = tmdbData.map((movie) => ({
+      const movies = tmdbData.results.map((movie) => ({
         movieId: movie.id.toString(),
         title: movie.title,
         release_date: movie.release_date,
@@ -139,19 +138,8 @@ module.exports = {
         genres: getGenreNames(movie.genre_ids),
       }));
 
-      // Filter movies based on the category and genres
-      const filteredMovies = movies.filter((movie) => {
-        if (category.toLowerCase() === "anime") {
-          // If category is anime, include only movies with "Animation" genre
-          return movie.genres.includes("Animation");
-        } else {
-          // If not anime, exclude movies with "Animation" genre
-          return !movie.genres.includes("Animation");
-        }
-      });
-
       res.status(200).json({
-        filteredMovies,
+        movies,
         currentPage: parseInt(page, 10),
         totalPages: Math.ceil(tmdbData.total_results / limit),
       });
@@ -160,7 +148,6 @@ module.exports = {
       res.status(500).json({ message: "Error fetching movies." });
     }
   },
-
   fetchMovieById: async (req, res) => {
     try {
       const { id: movieId } = req.params;
