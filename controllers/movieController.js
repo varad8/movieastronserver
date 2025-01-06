@@ -50,7 +50,8 @@ module.exports = {
   fetchMoviesByCategory: async (req, res) => {
     try {
       const { category, year, name, page = 1 } = req.query;
-      const limit = 20;
+      const limit = 20; // Limit to 20 items per page
+      const offset = (page - 1) * limit;
 
       if (!category) {
         return res.status(400).json({ message: "Category is required." });
@@ -58,7 +59,7 @@ module.exports = {
 
       let tmdbUrl;
 
-      // Case 1: AnimeMovie category with name and/or year (special handling for genre 16)
+      // Handle Anime movies
       if (category.toLowerCase() === "anime") {
         if (name && year) {
           tmdbUrl = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(
@@ -73,35 +74,26 @@ module.exports = {
         } else {
           tmdbUrl = `https://api.themoviedb.org/3/discover/movie?sort_by=release_date.desc&page=${page}&language=en-US&with_genres=16`;
         }
-      }
-
-      // Case 2: Both category and name are provided
-      else if (languageMap[category.toLowerCase()] && name) {
+      } else if (languageMap[category.toLowerCase()] && name) {
         tmdbUrl = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(
           name
         )}&page=${page}&language=en-US&with_original_language=${
           languageMap[category.toLowerCase()]
         }`;
-      }
-      // Case 3: Only name is provided
-      else if (name) {
+      } else if (name) {
         tmdbUrl = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(
           name
         )}&page=${page}&language=en-US`;
-      }
-      // Case 4: Only category is provided
-      else if (languageMap[category.toLowerCase()]) {
+      } else if (languageMap[category.toLowerCase()]) {
         tmdbUrl = `https://api.themoviedb.org/3/discover/movie?sort_by=release_date.desc&page=${page}&language=en-US&with_original_language=${
           languageMap[category.toLowerCase()]
         }`;
       }
 
-      // Add year filter if provided (and not already handled in the Anime case)
       if (year && category.toLowerCase() !== "anime") {
         tmdbUrl += `&primary_release_year=${year}`;
       }
 
-      // Fetch movies from TMDB using fetch API
       const response = await fetch(tmdbUrl, {
         method: "GET",
         headers: {
@@ -122,7 +114,7 @@ module.exports = {
 
       const tmdbData = await response.json();
 
-      const movies = tmdbData.results.map((movie) => ({
+      const movies = tmdbData.results.slice(0, limit).map((movie) => ({
         movieId: movie.id.toString(),
         title: movie.title,
         release_date: movie.release_date,
@@ -148,6 +140,7 @@ module.exports = {
       res.status(500).json({ message: "Error fetching movies." });
     }
   },
+
   fetchMovieById: async (req, res) => {
     try {
       const { id: movieId } = req.params;
