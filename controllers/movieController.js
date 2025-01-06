@@ -313,6 +313,9 @@ module.exports = {
 
   fetchMoviesByCategoryAndGenre: async (req, res) => {
     try {
+      const { page = 1 } = req.query; // Extract the page query parameter (default to 1)
+      const itemsPerPage = 20; // Number of items per page
+
       // Fetch all movies from the database without pagination
       const moviesFromDB = await Movie.find();
 
@@ -322,9 +325,16 @@ module.exports = {
           .json({ message: "No movies found in the database." });
       }
 
-      // Fetch details from TMDB for each movie
+      // Calculate start and end index for pagination
+      const startIndex = (page - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+
+      // Slice the movies for the current page
+      const paginatedMovies = moviesFromDB.slice(startIndex, endIndex);
+
+      // Fetch details from TMDB for each movie in the current page
       const tmdbMoviesDetails = await Promise.all(
-        moviesFromDB.map(async (movie) => {
+        paginatedMovies.map(async (movie) => {
           try {
             const tmdbUrl = `https://api.themoviedb.org/3/movie/${movie.movieId}?language=en-US`;
 
@@ -394,6 +404,12 @@ module.exports = {
 
       res.status(200).json({
         movies: tmdbMoviesDetails,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(moviesFromDB.length / itemsPerPage),
+          totalItems: moviesFromDB.length,
+          itemsPerPage,
+        },
       });
     } catch (error) {
       console.error("Error fetching movies:", error.message);
