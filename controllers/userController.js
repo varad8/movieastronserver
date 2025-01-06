@@ -19,6 +19,7 @@ let genres = [];
 let languageMap = {
   bollywood: "hi", // Hindi
   hollywood: "en", // English
+  marathi: "mr", // Marathi
   tollywood: "te", // Telugu
   kollywood: "ta", // Tamil
   mollywood: "ml", // Malayalam
