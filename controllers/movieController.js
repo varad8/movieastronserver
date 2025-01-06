@@ -313,10 +313,10 @@ module.exports = {
 
   fetchMoviesByCategoryAndGenre: async (req, res) => {
     try {
-      const { page = 1 } = req.query; // Extract the page query parameter (default to 1)
-      const itemsPerPage = 20; // Number of items per page
+      const { page = 1, category, genre } = req.query; // Extract query parameters
+      const itemsPerPage = 20;
 
-      // Fetch all movies from the database without pagination
+      // Fetch movies from the database
       const moviesFromDB = await Movie.find();
 
       if (moviesFromDB.length === 0) {
@@ -325,16 +325,9 @@ module.exports = {
           .json({ message: "No movies found in the database." });
       }
 
-      // Calculate start and end index for pagination
-      const startIndex = (page - 1) * itemsPerPage;
-      const endIndex = startIndex + itemsPerPage;
-
-      // Slice the movies for the current page
-      const paginatedMovies = moviesFromDB.slice(startIndex, endIndex);
-
-      // Fetch details from TMDB for each movie in the current page
+      // Fetch details from TMDB for each movie
       const tmdbMoviesDetails = await Promise.all(
-        paginatedMovies.map(async (movie) => {
+        moviesFromDB.map(async (movie) => {
           try {
             const tmdbUrl = `https://api.themoviedb.org/3/movie/${movie.movieId}?language=en-US`;
 
@@ -358,7 +351,7 @@ module.exports = {
 
             // Match category based on languageMap
             const matchedCategory = Object.keys(languageMap).find(
-              (category) => languageMap[category] === tmdbData.original_language
+              (cat) => languageMap[cat] === tmdbData.original_language
             );
 
             return {
@@ -373,7 +366,7 @@ module.exports = {
               popularity: tmdbData.popularity,
               vote_average: tmdbData.vote_average,
               vote_count: tmdbData.vote_count,
-              genres: tmdbData.genres.map((genre) => genre.name),
+              genres: tmdbData.genres.map((g) => g.name),
               downloadLinks: movie.downloadLinks,
             };
           } catch (error) {
@@ -382,7 +375,7 @@ module.exports = {
               error.message
             );
 
-            // Fallback response for errors during TMDB fetch
+            // Fallback for errors during TMDB fetch
             return {
               movieId: movie.movieId,
               title: movie.title,
@@ -402,12 +395,43 @@ module.exports = {
         })
       );
 
+      // Filter movies by category and genre if specified
+      let filteredMovies = tmdbMoviesDetails;
+
+      if (category) {
+        const language = languageMap[category.toLowerCase()];
+        if (!language) {
+          return res
+            .status(400)
+            .json({ message: `Invalid category: ${category}` });
+        }
+
+        filteredMovies = filteredMovies.filter(
+          (movie) => movie.original_language === language
+        );
+      }
+
+      if (genre) {
+        filteredMovies = filteredMovies.filter((movie) =>
+          movie.genres.includes(genre)
+        );
+      }
+
+      // Pagination
+      const startIndex = (page - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const paginatedMovies = filteredMovies.slice(startIndex, endIndex);
+
+      if (paginatedMovies.length === 0) {
+        return res.status(404).json({ message: "No movies found." });
+      }
+
       res.status(200).json({
-        movies: tmdbMoviesDetails,
+        movies: paginatedMovies,
         pagination: {
           currentPage: parseInt(page),
-          totalPages: Math.ceil(moviesFromDB.length / itemsPerPage),
-          totalItems: moviesFromDB.length,
+          totalPages: Math.ceil(filteredMovies.length / itemsPerPage),
+          totalItems: filteredMovies.length,
           itemsPerPage,
         },
       });
