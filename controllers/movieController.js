@@ -24,6 +24,7 @@ let languageMap = {
   japanese: "ja", //Japanese
   korean: "ko", //Korean
   anime: "16",
+  marathi: "mr",
 };
 
 const loadGenres = () => {
